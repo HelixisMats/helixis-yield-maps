@@ -194,7 +194,7 @@ footer b{color:var(--ink-2);font-weight:600}
 
   <section class="card tablecard" aria-label="Reference cities">
     <h2>Reference sites</h2>
-    <div class="hint">Values per single unit with the assumptions above. Click a column to sort, a row to show it on the map.</div>
+    <div class="hint" id="tblHint">Values for one unit with the assumptions above. Click a column to sort, a row to show it on the map.</div>
     <div class="tscroll">
       <table id="tbl">
         <thead><tr>
@@ -365,11 +365,12 @@ function drawBars(kwh){
 function ticks(){const vs=[950,1075,1200,1325,1450];
   $("ticks").innerHTML=vs.map(d=>`<span>${(yieldPerUnit(d,st.model)/1000).toFixed(1)}</span>`).join("");}
 function renderTable(){
-  const rows=CITIES.map(c=>{const v=sample(c.lat,c.lon);return {...c,dni:v[0],lc10:yieldPerUnit(v[0],"LC10"),lc20:yieldPerUnit(v[0],"LC20")};});
+  $("tblHint").textContent=(st.units>1?`Values for ${st.units} units`:"Values for one unit")+" with the assumptions above. Click a column to sort, a row to show it on the map.";
+  const rows=CITIES.map(c=>{const v=sample(c.lat,c.lon);return {...c,dni:v[0],lc10:yieldPerUnit(v[0],"LC10")*st.units,lc20:yieldPerUnit(v[0],"LC20")*st.units};});
   const {k,dir}=st.sort; rows.sort((a,b)=>(typeof a[k]==="string"?a[k].localeCompare(b[k]):a[k]-b[k])*dir);
   const mx=Math.max(...rows.map(r=>r.dni));
   $("tbl").querySelector("tbody").innerHTML=rows.map(r=>`<tr data-n="${r.name}" class="${r.name===st.sel.name?"sel":""}"><td>${r.name}</td><td style="font-family:var(--f-body)">${r.region}</td><td><span class="cellbar" style="width:${Math.round(48*r.dni/mx)}px"></span>${fmtInt(r.dni)}</td><td>${fmtMWh(r.lc10)}</td><td>${fmtMWh(r.lc20)}</td></tr>`).join("");
-  $("tbl").querySelectorAll("th").forEach(th=>{const a=th.dataset.k===k;th.setAttribute("aria-sort",a?(dir>0?"ascending":"descending"):"none");th.textContent=th.textContent.replace(/ [▲▼]$/,"")+(a?(dir>0?" ▲":" ▼"):"");});
+  $("tbl").querySelectorAll("th").forEach(th=>{const a=th.dataset.k===k;th.setAttribute("aria-sort",a?(dir>0?"ascending":"descending"):"none");const lab={lc10:`LC10 HW${st.units>1?" × "+st.units:""} MWh/yr`,lc20:`LC20 HW${st.units>1?" × "+st.units:""} MWh/yr`};th.textContent=(lab[th.dataset.k]||th.textContent.replace(/ [▲▼]$/,""))+(a?(dir>0?" ▲":" ▼"):"");});
 }
 $("tbl").querySelector("thead").addEventListener("click",e=>{const th=e.target.closest("th");if(!th)return;const k=th.dataset.k;st.sort={k,dir:st.sort.k===k?-st.sort.dir:(k==="name"||k==="region"?1:-1)};renderTable();});
 $("tbl").querySelector("tbody").addEventListener("click",e=>{const tr=e.target.closest("tr");if(!tr)return;selectCity(tr.dataset.n);box.scrollIntoView({behavior:"smooth",block:"nearest"});});
